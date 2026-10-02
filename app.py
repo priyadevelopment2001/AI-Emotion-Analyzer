@@ -9,7 +9,7 @@ st.set_page_config(
 )
 
 # Photo load
-with open(r"C:\Users\Dell\Desktop\Sentiment-analysis\priya_photo.jpeg", "rb") as f:
+with open("priya_photo.jpeg", "rb") as f:
     photo = base64.b64encode(f.read()).decode()
 
 # Styling
