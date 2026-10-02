@@ -2,13 +2,14 @@ import streamlit as st
 from transformers import pipeline
 import base64
 
+# Page settings
 st.set_page_config(
     page_title="AI Emotion Analyzer",
     page_icon="AI",
     layout="centered"
 )
 
-# Photo load
+# Profile Photo
 with open("priya_photo.jpeg", "rb") as f:
     photo = base64.b64encode(f.read()).decode()
 
@@ -55,7 +56,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# PHOTO — TOP
+# Profile Photo
 st.markdown(
     f"""
     <div style="text-align:center; margin-top:0px; margin-bottom:10px;">
@@ -68,7 +69,7 @@ st.markdown(
 )
 
 
-# Name
+# Developer name
 st.markdown(
     '<div class="name">Priya Dalal</div>',
     unsafe_allow_html=True
@@ -79,42 +80,61 @@ st.markdown(
 st.markdown("""
 <div class="header">
     <h1>AI Emotion Analyzer</h1>
-    <p>Understand emotions from your text using Artificial Intelligence</p>
+    <p>AI-powered emotion detection from text</p>
 </div>
 """, unsafe_allow_html=True)
 
 
-# AI Model
+# Load AI model
 @st.cache_resource
 def load_model():
     return pipeline(
         "text-classification",
-        model="j-hartmann/emotion-english-distilroberta-base"
+        model="tabularisai/multilingual-emotion-classification",
+        function_to_apply="sigmoid",
+        top_k=None
     )
+
 
 emotion_analyzer = load_model()
 
 
-# Input
+# Text Input
 text = st.text_area(
     "Enter your text",
-    placeholder="Example: I am very happy today because everything went well.",
+    placeholder="Example: Mujhe aaj bahut khushi ho rahi hai!",
     height=150
 )
 
 
-# Analyze
+# Analyze Emotion
 if st.button("Analyze Emotion", use_container_width=True):
 
     if text.strip() == "":
         st.warning("Please enter some text first.")
 
     else:
-        result = emotion_analyzer(text)[0]
 
-        emotion = result["label"]
-        confidence = result["score"] * 100
+        results = emotion_analyzer(text)
 
+        # Handle model output
+        if results and isinstance(results[0], list):
+            results = results[0]
+
+        # Sort by confidence
+        results = sorted(
+            results,
+            key=lambda x: x["score"],
+            reverse=True
+        )
+
+        # Highest emotion
+        best_result = results[0]
+
+        emotion = best_result["label"]
+        confidence = best_result["score"] * 100
+
+        # Main Result
         st.markdown(
             '<div class="result-box">',
             unsafe_allow_html=True
@@ -122,15 +142,42 @@ if st.button("Analyze Emotion", use_container_width=True):
 
         st.subheader("Analysis Result")
 
-        st.success(f"Emotion: {emotion.upper()}")
+        st.success(
+            f"Primary Emotion: {emotion.upper()}"
+        )
 
-        st.progress(result["score"])
+        st.progress(
+            float(best_result["score"])
+        )
 
-        st.write(f"Confidence: **{confidence:.2f}%**")
+        st.write(
+            f"Confidence: **{confidence:.2f}%**"
+        )
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
 
 
+        # Emotion Details
+        st.subheader("Emotion Details")
+
+        for item in results[:5]:
+
+            label = item["label"]
+            score = item["score"] * 100
+
+            st.write(
+                f"**{label.upper()}** — {score:.2f}%"
+            )
+
+            st.progress(
+                float(item["score"])
+            )
+
+
+# Footer
 st.markdown("---")
 
 st.caption(
